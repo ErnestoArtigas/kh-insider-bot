@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "kh-insider-bot"
+version = "0.1.0"
+description = "kh-insider-bot"
+authors = ["Ernesto ARTIGAS"]
+license = "MIT"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+colorama = "0.4.6"
+numpy = "2.2.2"
+requests = "2.32.3"
+beautifulsoup4 = "4.13.3"
+tqdm = "4.67.1"

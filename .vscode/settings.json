@@ -1,0 +1,16 @@
+{
+  "[python]": {
+    "editor.rulers": [72, 88],
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": "always",
+      "source.unusedImports": "always"
+    }
+  },
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.inlayHints.callArgumentNames": "all",
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.pytestParameters": true
+}
