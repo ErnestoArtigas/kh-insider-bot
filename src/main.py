@@ -13,11 +13,11 @@ from bs4 import BeautifulSoup
 import src.downloader as downloader
 
 
-def extractNameFromTitle(link):
+def extract_name_from_title(link):
     return link.split("MP3")[0].rstrip()
 
 
-def searchForFormat(songListTable):
+def search_for_format(songListTable):
     thArray = songListTable.find_all("th")
 
     formatArray = []
@@ -42,7 +42,7 @@ def searchForFormat(songListTable):
         exit(1)
 
 
-def scrapingLinks(songListTable, format):
+def scraping_links(songListTable, format):
     trackLinkArray = []
     downloadLinkArray = []
 
@@ -69,12 +69,12 @@ def scrapingLinks(songListTable, format):
     return downloadLinkArray
 
 
-def accessLink(format, ostLink):
-    request = downloader.getRequestFromLink(ostLink)
+def access_link(format, ostLink):
+    request = downloader.get_request_from_link(ostLink)
 
     soup = BeautifulSoup(request.text, "html.parser")
 
-    title = downloader.removeInvalidChars(extractNameFromTitle(soup.title.string))
+    title = downloader.remove_invalid_chars(extract_name_from_title(soup.title.string))
 
     print(colorama.Fore.GREEN + title, "was loaded" + colorama.Style.RESET_ALL)
 
@@ -86,7 +86,7 @@ def accessLink(format, ostLink):
         )
         exit(1)
 
-    formatArray = searchForFormat(songListTable)
+    formatArray = search_for_format(songListTable)
 
     if not format in formatArray:
         print(
@@ -96,7 +96,7 @@ def accessLink(format, ostLink):
         print(formatArray)
         exit(1)
 
-    downloader.downloadFiles(title, scrapingLinks(songListTable, format))
+    downloader.download_files(title, scraping_links(songListTable, format))
 
 
 def main():
@@ -138,7 +138,7 @@ def main():
         print(colorama.Style.RESET_ALL + parser.usage)
         exit(1)
 
-    accessLink(options.format.casefold(), options.link)
+    access_link(options.format.casefold(), options.link)
 
 
 if __name__ == "__main__":

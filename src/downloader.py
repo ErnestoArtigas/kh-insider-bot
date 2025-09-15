@@ -12,11 +12,11 @@ import requests
 from tqdm import tqdm
 
 
-def removeInvalidChars(string):
+def remove_invalid_chars(string):
     return re.sub(r'[\\\/?:*"<>|]', "", string)
 
 
-def getRequestFromLink(link):
+def get_request_from_link(link):
     request = requests.get(link)
     print("request", request)
     if request.status_code != 200:
@@ -24,11 +24,11 @@ def getRequestFromLink(link):
     return request
 
 
-def extractDecodeFileName(url):
+def extract_decode_filename(url):
     return unquote(url.split("/")[-1])
 
 
-def createDirectory(directoryName):
+def create_directory(directoryName):
     path = os.path.join(os.getcwd(), directoryName)
     try:
         os.mkdir(path)
@@ -36,9 +36,9 @@ def createDirectory(directoryName):
         raise error
 
 
-def downloadFile(path, link):
-    request = getRequestFromLink(link)
-    fileName = extractDecodeFileName(link)
+def download_file(path, link):
+    request = get_request_from_link(link)
+    fileName = extract_decode_filename(link)
     totalSize = int(request.headers.get("content-length"))
     try:
         with open(os.path.join(path, fileName), "wb") as file:
@@ -59,11 +59,11 @@ def downloadFile(path, link):
         raise (error)
 
 
-def downloadFiles(directoryName, linkArray):
+def download_files(directoryName, linkArray):
     try:
-        createDirectory(directoryName)
+        create_directory(directoryName)
         for element in linkArray:
-            downloadFile(os.path.join(os.getcwd(), directoryName), element)
+            download_file(os.path.join(os.getcwd(), directoryName), element)
         print(colorama.Fore.GREEN + "Finished downloading all files.")
     except Exception as error:
         print(colorama.Fore.RED)
