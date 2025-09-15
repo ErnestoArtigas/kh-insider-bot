@@ -21,16 +21,20 @@ The first version of the project was written in NodeJS, as a side project for us
 ## Installation
 
 ```sh
-pip install bs4 numpy tqdm colorama
+poetry install
 ```
 
 
-## Usage 
+## Usage
 
 For using the program you have to specify the album page link on khinsider and specify the format you want to use. This program won't convert the songs for you, you have to specify one format available for this specific album. If the format you use doesn't exist for this album the program will print to you available formats before exiting.
 
 ```sh
-python main.py -f <format> -l <link/to/the/album>
+# To run in a poetry shell you need to install the plugin
+poetry shell && python main.py -f <format> -l <link/to/the/album>
+
+# To run without a poetry shell instance
+poetry run python main.py -f <format> -l <link/to/the/album>
 ```
 
 The downloaded files will be stored into a specific folder for each album.
