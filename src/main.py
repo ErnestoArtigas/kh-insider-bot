@@ -4,11 +4,11 @@ Licence GNU General Public Licence v3.0.
 """
 
 from optparse import OptionParser, Values
+from typing import cast
 
 import colorama
 import httpx
-import numpy as np
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 import downloader
 
@@ -17,29 +17,15 @@ def extract_name_from_title(link) -> str:
     return link.split("MP3")[0].rstrip()
 
 
-def search_for_format(song_list_table):
-    th_array = song_list_table.find_all("th")
+def is_format_available(song_list_table: Tag, format: str) -> bool:
+    table_headers = cast(Tag, song_list_table.find(id="songlist_header")).find_all(
+        name="th"
+    )
 
-    format_array = []
-
-    for element in th_array:
-        format_array.append(element.get_text().casefold())
-
-    # searching for the index of song name and total (use of casefold() to avoid any string problems)
-    start, end = format_array.index("song name"), format_array.index("total:")
-
-    # conversion with numpy just for this option
-    format_array = np.array(format_array)
-
-    try:
-        format_array = format_array[start + 1 : end - 1].tolist()
-        return format_array
-    except ValueError:
-        print(
-            colorama.Fore.RED,
-            "The format table is not correct, please report the issue on Github.",
-        )
-        exit(1)
+    return any(
+        format == cast(str, cast(Tag, cast(Tag, th).contents[0]).string).lower()
+        for th in table_headers
+    )
 
 
 def scraping_links(song_list_table, format) -> list[str]:
@@ -117,36 +103,37 @@ def main() -> None:
 
     soup = BeautifulSoup(markup=response.text, features="html.parser")
 
+    if soup.title is None:
+        print(colorama.Fore.RED, "The program couldn't process the page.")
+        exit(code=1)
+
     title = downloader.remove_invalid_chars(
         string=extract_name_from_title(link=soup.title.string)
     )
 
-    print(colorama.Fore.GREEN + title, "was loaded", colorama.Style.RESET_ALL)
+    print(colorama.Fore.GREEN, title, "was loaded", colorama.Style.RESET_ALL)
 
     song_list_table = soup.find(id="songlist")
 
-    if song_list_table is None:
+    if song_list_table is None or type(song_list_table) is not Tag:
         print(
             colorama.Fore.RED, "The program cannot find a song table, invalid website."
         )
         exit(code=1)
 
-    format_array = search_for_format(song_list_table=song_list_table)
-
-    if options.format not in format_array:
+    if not is_format_available(song_list_table=song_list_table, format=options.format):
         print(
             colorama.Fore.RED,
-            "Format is not available for this link. Here are the available formats:",
+            f"The format {options.format} is not available for {title}.",
         )
-        print(format_array)
         exit(code=1)
 
-    downloader.download_files(
-        directory_name=title,
-        link_array=scraping_links(
-            song_list_table=song_list_table, format=options.format
-        ),
-    )
+    # downloader.download_files(
+    #     directory_name=title,
+    #     link_array=scraping_links(
+    #         song_list_table=song_list_table, format=options.format
+    #     ),
+    # )
 
 
 if __name__ == "__main__":
