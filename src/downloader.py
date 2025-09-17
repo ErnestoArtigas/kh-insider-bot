@@ -7,7 +7,6 @@ import os
 import re
 from urllib.parse import unquote
 
-import colorama
 import requests
 from tqdm import tqdm
 
@@ -56,14 +55,3 @@ def download_file(path, link) -> None:
                         progressBar.update(len(chunk))
     except Exception as error:
         raise (error)
-
-
-def download_files(directory_name, link_array) -> None:
-    try:
-        create_directory(directory_name=directory_name)
-        for element in link_array:
-            download_file(path=os.path.join(os.getcwd(), directory_name), link=element)
-        print(colorama.Fore.GREEN, "Finished downloading all files.")
-    except Exception as error:
-        print(colorama.Fore.RED)
-        print(error)

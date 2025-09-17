@@ -3,6 +3,7 @@ Code written by Ernesto Artigas.
 Licence GNU General Public Licence v3.0.
 """
 
+import os
 from optparse import OptionParser, Values
 from typing import cast
 
@@ -28,31 +29,23 @@ def is_format_available(song_list_table: Tag, format: str) -> bool:
     )
 
 
-def scraping_links(song_list_table, format) -> list[str]:
-    track_link_array = []
-    download_link_array = []
+def scraping_links(song_list_table: Tag, format: str, title: str) -> None:
+    hrefs = []
 
-    for request in song_list_table.find_all("a"):
-        track_link_array.append("https://downloads.khinsider.com" + request.get("href"))
+    for link in song_list_table.find_all("a"):
+        hrefs.append(f"https://downloads.khinsider.com{link.get('href')}")
 
-    track_link_array = list(dict.fromkeys(track_link_array))
+    hrefs = list(dict.fromkeys(hrefs))
 
-    for request in track_link_array:
-        response = httpx.get(url=request)
+    for link in hrefs:
+        response = httpx.get(url=link)
         page_soup = BeautifulSoup(markup=response.text, features="html.parser")
         for element in page_soup.find_all(name="span", class_="songDownloadLink"):
             music_link = element.parent.get(key="href")
             if music_link.split(".")[-1] == format:
-                download_link_array.append(music_link)
-
-    if len(download_link_array) == 0:
-        print(
-            colorama.Fore.RED,
-            "No downloadable requests were found. Please report an issue on the github page.",
-        )
-        exit(code=1)
-
-    return download_link_array
+                downloader.download_file(
+                    path=os.path.join(os.getcwd(), title), link=music_link
+                )
 
 
 def create_parser() -> tuple[OptionParser, Values]:
@@ -128,12 +121,15 @@ def main() -> None:
         )
         exit(code=1)
 
-    # downloader.download_files(
-    #     directory_name=title,
-    #     link_array=scraping_links(
-    #         song_list_table=song_list_table, format=options.format
-    #     ),
-    # )
+    try:
+        downloader.create_directory(directory_name=title)
+        scraping_links(
+            song_list_table=song_list_table, format=options.format, title=title
+        )
+        print(colorama.Fore.GREEN, "Finished downloading all files.")
+    except Exception as error:
+        print(colorama.Fore.RED)
+        print(error)
 
 
 if __name__ == "__main__":
