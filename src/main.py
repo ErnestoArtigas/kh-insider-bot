@@ -6,11 +6,11 @@ Licence GNU General Public Licence v3.0.
 from optparse import OptionParser
 
 import colorama
+import httpx
 import numpy as np
-import requests
 from bs4 import BeautifulSoup
 
-import src.downloader as downloader
+import downloader
 
 
 def extract_name_from_title(link):
@@ -52,8 +52,8 @@ def scraping_links(songListTable, format):
     trackLinkArray = list(dict.fromkeys(trackLinkArray))
 
     for request in trackLinkArray:
-        requestRequest = requests.get(request)
-        pageSoup = BeautifulSoup(requestRequest.text, "html.parser")
+        response = httpx.get(request)
+        pageSoup = BeautifulSoup(response.text, "html.parser")
         for element in pageSoup.find_all("span", class_="songDownloadLink"):
             musicLink = element.parent.get("href")
             if musicLink.split(".")[-1] == format:
@@ -70,9 +70,9 @@ def scraping_links(songListTable, format):
 
 
 def access_link(format, ostLink):
-    request = downloader.get_request_from_link(ostLink)
+    response = httpx.get(ostLink)
 
-    soup = BeautifulSoup(request.text, "html.parser")
+    soup = BeautifulSoup(response.text, "html.parser")
 
     title = downloader.remove_invalid_chars(extract_name_from_title(soup.title.string))
 
