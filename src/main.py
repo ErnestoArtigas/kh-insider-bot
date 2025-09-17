@@ -3,7 +3,7 @@ Code written by Ernesto Artigas.
 Licence GNU General Public Licence v3.0.
 """
 
-from optparse import OptionParser
+from optparse import OptionParser, Values
 
 import colorama
 import httpx
@@ -99,7 +99,7 @@ def access_link(format, ostLink):
     downloader.download_files(title, scraping_links(songListTable, format))
 
 
-def main():
+def create_parser() -> tuple[OptionParser, Values]:
     parser = OptionParser(usage="main.py -f <format> -l <link/to/the/album>")
     parser.add_option(
         "-f",
@@ -121,6 +121,11 @@ def main():
     )
 
     (options, _) = parser.parse_args()
+    return parser, options
+
+
+def main() -> None:
+    parser, options = create_parser()
 
     if options.format == None or options.link == None:
         print(
