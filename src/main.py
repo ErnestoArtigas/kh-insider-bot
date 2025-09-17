@@ -13,27 +13,27 @@ from bs4 import BeautifulSoup
 import downloader
 
 
-def extract_name_from_title(link):
+def extract_name_from_title(link) -> str:
     return link.split("MP3")[0].rstrip()
 
 
-def search_for_format(songListTable):
-    thArray = songListTable.find_all("th")
+def search_for_format(song_list_table):
+    th_array = song_list_table.find_all("th")
 
-    formatArray = []
+    format_array = []
 
-    for element in thArray:
-        formatArray.append(element.get_text().casefold())
+    for element in th_array:
+        format_array.append(element.get_text().casefold())
 
     # searching for the index of song name and total (use of casefold() to avoid any string problems)
-    start, end = formatArray.index("song name"), formatArray.index("total:")
+    start, end = format_array.index("song name"), format_array.index("total:")
 
     # conversion with numpy just for this option
-    formatArray = np.array(formatArray)
+    format_array = np.array(format_array)
 
     try:
-        formatArray = formatArray[start + 1 : end - 1].tolist()
-        return formatArray
+        format_array = format_array[start + 1 : end - 1].tolist()
+        return format_array
     except ValueError:
         print(
             colorama.Fore.RED,
@@ -42,61 +42,31 @@ def search_for_format(songListTable):
         exit(1)
 
 
-def scraping_links(songListTable, format):
-    trackLinkArray = []
-    downloadLinkArray = []
+def scraping_links(song_list_table, format) -> list[str]:
+    track_link_array = []
+    download_link_array = []
 
-    for request in songListTable.find_all("a"):
-        trackLinkArray.append("https://downloads.khinsider.com" + request.get("href"))
+    for request in song_list_table.find_all("a"):
+        track_link_array.append("https://downloads.khinsider.com" + request.get("href"))
 
-    trackLinkArray = list(dict.fromkeys(trackLinkArray))
+    track_link_array = list(dict.fromkeys(track_link_array))
 
-    for request in trackLinkArray:
-        response = httpx.get(request)
-        pageSoup = BeautifulSoup(response.text, "html.parser")
-        for element in pageSoup.find_all("span", class_="songDownloadLink"):
-            musicLink = element.parent.get("href")
-            if musicLink.split(".")[-1] == format:
-                downloadLinkArray.append(musicLink)
+    for request in track_link_array:
+        response = httpx.get(url=request)
+        page_soup = BeautifulSoup(markup=response.text, features="html.parser")
+        for element in page_soup.find_all(name="span", class_="songDownloadLink"):
+            music_link = element.parent.get(key="href")
+            if music_link.split(".")[-1] == format:
+                download_link_array.append(music_link)
 
-    if len(downloadLinkArray) == 0:
+    if len(download_link_array) == 0:
         print(
             colorama.Fore.RED,
             "No downloadable requests were found. Please report an issue on the github page.",
         )
-        exit(1)
+        exit(code=1)
 
-    return downloadLinkArray
-
-
-def access_link(format, ostLink):
-    response = httpx.get(ostLink)
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    title = downloader.remove_invalid_chars(extract_name_from_title(soup.title.string))
-
-    print(colorama.Fore.GREEN + title, "was loaded", colorama.Style.RESET_ALL)
-
-    songListTable = soup.find(id="songlist")
-
-    if songListTable is None:
-        print(
-            colorama.Fore.RED, "The program cannot find a song table, invalid website."
-        )
-        exit(1)
-
-    formatArray = search_for_format(songListTable)
-
-    if format not in formatArray:
-        print(
-            colorama.Fore.RED,
-            "Format is not available for this link. Here are the available formats:",
-        )
-        print(formatArray)
-        exit(1)
-
-    downloader.download_files(title, scraping_links(songListTable, format))
+    return download_link_array
 
 
 def create_parser() -> tuple[OptionParser, Values]:
@@ -133,7 +103,7 @@ def main() -> None:
             + "Missing arguments, you need to provide the format and the link in the command."
         )
         print(colorama.Style.RESET_ALL, parser.usage)
-        exit(1)
+        exit(code=1)
 
     if options.format.isdigit() or options.link.isdigit():
         print(
@@ -141,9 +111,42 @@ def main() -> None:
             + "The arguments provided are not string. You need to enter valid arguments"
         )
         print(colorama.Style.RESET_ALL, parser.usage)
-        exit(1)
+        exit(code=1)
 
-    access_link(options.format.casefold(), options.link)
+    response = httpx.get(url=options.link)
+
+    soup = BeautifulSoup(markup=response.text, features="html.parser")
+
+    title = downloader.remove_invalid_chars(
+        string=extract_name_from_title(link=soup.title.string)
+    )
+
+    print(colorama.Fore.GREEN + title, "was loaded", colorama.Style.RESET_ALL)
+
+    song_list_table = soup.find(id="songlist")
+
+    if song_list_table is None:
+        print(
+            colorama.Fore.RED, "The program cannot find a song table, invalid website."
+        )
+        exit(code=1)
+
+    format_array = search_for_format(song_list_table=song_list_table)
+
+    if options.format not in format_array:
+        print(
+            colorama.Fore.RED,
+            "Format is not available for this link. Here are the available formats:",
+        )
+        print(format_array)
+        exit(code=1)
+
+    downloader.download_files(
+        directory_name=title,
+        link_array=scraping_links(
+            song_list_table=song_list_table, format=options.format
+        ),
+    )
 
 
 if __name__ == "__main__":

@@ -12,36 +12,35 @@ import requests
 from tqdm import tqdm
 
 
-def remove_invalid_chars(string):
-    return re.sub(r'[\\\/?:*"<>|]', "", string)
+def remove_invalid_chars(string) -> str:
+    return re.sub(pattern=r'[\\\/?:*"<>|]', repl="", string=string)
 
 
-def get_request_from_link(link):
-    request = requests.get(link)
-    print("request", request)
-    if request.status_code != 200:
-        request.raise_for_status()
-    return request
+def get_request_from_link(link) -> requests.Response:
+    response = requests.get(link)
+    if response.status_code != 200:
+        response.raise_for_status()
+    return response
 
 
-def extract_decode_filename(url):
-    return unquote(url.split("/")[-1])
+def extract_decode_filename(url) -> str:
+    return unquote(string=url.split("/")[-1])
 
 
-def create_directory(directoryName):
-    path = os.path.join(os.getcwd(), directoryName)
+def create_directory(directory_name) -> None:
+    path = os.path.join(os.getcwd(), directory_name)
     try:
-        os.mkdir(path)
+        os.mkdir(path=path)
     except OSError as error:
         raise error
 
 
-def download_file(path, link):
-    request = get_request_from_link(link)
-    fileName = extract_decode_filename(link)
+def download_file(path, link) -> None:
+    request = get_request_from_link(link=link)
+    fileName = extract_decode_filename(url=link)
     totalSize = int(request.headers.get("content-length"))
     try:
-        with open(os.path.join(path, fileName), "wb") as file:
+        with open(file=os.path.join(path, fileName), mode="wb") as file:
             with tqdm(
                 total=totalSize,
                 unit="B",
@@ -59,11 +58,11 @@ def download_file(path, link):
         raise (error)
 
 
-def download_files(directoryName, linkArray):
+def download_files(directory_name, link_array) -> None:
     try:
-        create_directory(directoryName)
-        for element in linkArray:
-            download_file(os.path.join(os.getcwd(), directoryName), element)
+        create_directory(directory_name=directory_name)
+        for element in link_array:
+            download_file(path=os.path.join(os.getcwd(), directory_name), link=element)
         print(colorama.Fore.GREEN, "Finished downloading all files.")
     except Exception as error:
         print(colorama.Fore.RED)
