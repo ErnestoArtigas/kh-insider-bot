@@ -64,7 +64,7 @@ def download_files(directoryName, linkArray):
         create_directory(directoryName)
         for element in linkArray:
             download_file(os.path.join(os.getcwd(), directoryName), element)
-        print(colorama.Fore.GREEN + "Finished downloading all files.")
+        print(colorama.Fore.GREEN, "Finished downloading all files.")
     except Exception as error:
         print(colorama.Fore.RED)
         print(error)

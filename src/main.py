@@ -36,8 +36,8 @@ def search_for_format(songListTable):
         return formatArray
     except ValueError:
         print(
-            colorama.Fore.RED
-            + "The format table is not correct, please report the issue on Github."
+            colorama.Fore.RED,
+            "The format table is not correct, please report the issue on Github.",
         )
         exit(1)
 
@@ -61,8 +61,8 @@ def scraping_links(songListTable, format):
 
     if len(downloadLinkArray) == 0:
         print(
-            colorama.Fore.RED
-            + "No downloadable requests were found. Please report an issue on the github page."
+            colorama.Fore.RED,
+            "No downloadable requests were found. Please report an issue on the github page.",
         )
         exit(1)
 
@@ -76,22 +76,22 @@ def access_link(format, ostLink):
 
     title = downloader.remove_invalid_chars(extract_name_from_title(soup.title.string))
 
-    print(colorama.Fore.GREEN + title, "was loaded" + colorama.Style.RESET_ALL)
+    print(colorama.Fore.GREEN + title, "was loaded", colorama.Style.RESET_ALL)
 
     songListTable = soup.find(id="songlist")
 
-    if songListTable == None:
+    if songListTable is None:
         print(
-            colorama.Fore.RED + "The program cannot find a song table, invalid website."
+            colorama.Fore.RED, "The program cannot find a song table, invalid website."
         )
         exit(1)
 
     formatArray = search_for_format(songListTable)
 
-    if not format in formatArray:
+    if format not in formatArray:
         print(
-            colorama.Fore.RED
-            + "Format is not available for this link. Here are the available formats:"
+            colorama.Fore.RED,
+            "Format is not available for this link. Here are the available formats:",
         )
         print(formatArray)
         exit(1)
@@ -127,12 +127,12 @@ def create_parser() -> tuple[OptionParser, Values]:
 def main() -> None:
     parser, options = create_parser()
 
-    if options.format == None or options.link == None:
+    if options.format is None or options.link is None:
         print(
             colorama.Fore.RED
             + "Missing arguments, you need to provide the format and the link in the command."
         )
-        print(colorama.Style.RESET_ALL + parser.usage)
+        print(colorama.Style.RESET_ALL, parser.usage)
         exit(1)
 
     if options.format.isdigit() or options.link.isdigit():
@@ -140,7 +140,7 @@ def main() -> None:
             colorama.Fore.RED
             + "The arguments provided are not string. You need to enter valid arguments"
         )
-        print(colorama.Style.RESET_ALL + parser.usage)
+        print(colorama.Style.RESET_ALL, parser.usage)
         exit(1)
 
     access_link(options.format.casefold(), options.link)
