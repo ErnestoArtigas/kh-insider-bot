@@ -3,7 +3,6 @@ Code written by Ernesto Artigas.
 Licence GNU General Public Licence v3.0.
 """
 
-import os
 from optparse import OptionParser, Values
 from typing import cast
 
@@ -29,23 +28,34 @@ def is_format_available(song_list_table: Tag, format: str) -> bool:
     )
 
 
-def scraping_links(song_list_table: Tag, format: str, title: str) -> None:
-    hrefs = []
+def scrap_links_from_table(song_list_table: Tag, format: str, title: str) -> list[str]:
+    song_page_link = []
+    song_direct_link = []
 
     for link in song_list_table.find_all("a"):
-        hrefs.append(f"https://downloads.khinsider.com{link.get('href')}")
+        song_page_link.append(f"https://downloads.khinsider.com{link.get('href')}")
 
-    hrefs = list(dict.fromkeys(hrefs))
+    song_page_link = list(dict.fromkeys(song_page_link))
 
-    for link in hrefs:
+    for link in song_page_link:
         response = httpx.get(url=link)
         page_soup = BeautifulSoup(markup=response.text, features="html.parser")
-        for element in page_soup.find_all(name="span", class_="songDownloadLink"):
-            music_link = element.parent.get(key="href")
-            if music_link.split(".")[-1] == format:
-                downloader.download_file(
-                    path=os.path.join(os.getcwd(), title), link=music_link
-                )
+        music_links = page_soup.find_all(
+            name="span",
+            class_="songDownloadLink",
+        )
+
+        # Find the right link element
+        format_music_link = [
+            link
+            for link in music_links
+            if format
+            in cast(str, cast(Tag, cast(Tag, link).contents[1]).string).lower()
+        ][0]
+
+        song_direct_link.append(cast(Tag, format_music_link.parent).get(key="href"))
+
+    return song_direct_link
 
 
 def create_parser() -> tuple[OptionParser, Values]:
@@ -86,8 +96,8 @@ def main() -> None:
 
     if options.format.isdigit() or options.link.isdigit():
         print(
-            colorama.Fore.RED
-            + "The arguments provided are not string. You need to enter valid arguments"
+            colorama.Fore.RED,
+            "The arguments provided are not string. You need to enter valid arguments",
         )
         print(colorama.Style.RESET_ALL, parser.usage)
         exit(code=1)
@@ -122,14 +132,15 @@ def main() -> None:
         exit(code=1)
 
     try:
-        downloader.create_directory(directory_name=title)
-        scraping_links(
+        # Convert it to parallelism
+        links = scrap_links_from_table(
             song_list_table=song_list_table, format=options.format, title=title
         )
+        downloader.create_directory(directory_name=title)
+        # Write functions to use download_file with parallelism
         print(colorama.Fore.GREEN, "Finished downloading all files.")
     except Exception as error:
-        print(colorama.Fore.RED)
-        print(error)
+        print(colorama.Fore.RED, error)
 
 
 if __name__ == "__main__":
