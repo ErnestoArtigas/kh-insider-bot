@@ -7,64 +7,51 @@ import os
 import re
 from urllib.parse import unquote
 
-import colorama
-import requests
+import aiofiles
+import httpx
 from tqdm import tqdm
 
 
-def remove_invalid_chars(string):
-    return re.sub(r'[\\\/?:*"<>|]', "", string)
+def remove_invalid_chars(string) -> str:
+    return re.sub(pattern=r'[\\\/?:*"<>|]', repl="", string=string)
 
 
-def get_request_from_link(link):
-    request = requests.get(link)
-    print("request", request)
-    if request.status_code != 200:
-        request.raise_for_status()
-    return request
+def extract_decode_filename(url: str) -> str:
+    return unquote(string=url.split("/")[-1])
 
 
-def extract_decode_filename(url):
-    return unquote(url.split("/")[-1])
-
-
-def create_directory(directoryName):
-    path = os.path.join(os.getcwd(), directoryName)
+def create_directory(directory_name: str) -> str:
+    path = os.path.join(os.getcwd(), directory_name)
     try:
-        os.mkdir(path)
+        os.mkdir(path=path)
+        return path
     except OSError as error:
-        raise error
-
-
-def download_file(path, link):
-    request = get_request_from_link(link)
-    fileName = extract_decode_filename(link)
-    totalSize = int(request.headers.get("content-length"))
-    try:
-        with open(os.path.join(path, fileName), "wb") as file:
-            with tqdm(
-                total=totalSize,
-                unit="B",
-                unit_scale=True,
-                desc=fileName,
-                initial=0,
-                ascii=False,
-                colour="green",
-            ) as progressBar:
-                for chunk in request.iter_content(chunk_size=1024):
-                    if chunk:
-                        file.write(chunk)
-                        progressBar.update(len(chunk))
-    except Exception as error:
-        raise (error)
-
-
-def download_files(directoryName, linkArray):
-    try:
-        create_directory(directoryName)
-        for element in linkArray:
-            download_file(os.path.join(os.getcwd(), directoryName), element)
-        print(colorama.Fore.GREEN + "Finished downloading all files.")
-    except Exception as error:
-        print(colorama.Fore.RED)
         print(error)
+
+
+async def download_file(path: str, link: str, client: httpx.AsyncClient) -> None:
+    file_name = extract_decode_filename(url=link)
+
+    try:
+        async with aiofiles.open(file=os.path.join(path, file_name), mode="wb") as file:
+            async with client.stream(method="GET", url=link) as response:
+                with tqdm(
+                    total=float(response.headers["content-length"]),
+                    unit="B",
+                    unit_scale=True,
+                    desc=file_name,
+                    initial=0,
+                    ascii=False,
+                    colour="green",
+                ) as progress:
+                    async for chunk in response.aiter_bytes():
+                        await file.write(chunk)
+                        progress.update(len(chunk))
+    except Exception as error:
+        print(error)
+
+
+async def download_files(links: list[str], path: str) -> None:
+    async with httpx.AsyncClient() as client:
+        for link in links:
+            await download_file(link=link, path=path, client=client)
