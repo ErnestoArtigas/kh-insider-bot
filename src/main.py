@@ -3,6 +3,8 @@ Code written by Ernesto Artigas.
 Licence GNU General Public Licence v3.0.
 """
 
+import asyncio
+import time
 from optparse import OptionParser, Values
 from typing import cast
 
@@ -28,7 +30,9 @@ def is_format_available(song_list_table: Tag, format: str) -> bool:
     )
 
 
-def scrap_links_from_table(song_list_table: Tag, format: str, title: str) -> list[str]:
+async def scrap_links_from_table(
+    song_list_table: Tag, format: str, title: str
+) -> list[str]:
     song_page_link = []
     song_direct_link = []
 
@@ -37,23 +41,24 @@ def scrap_links_from_table(song_list_table: Tag, format: str, title: str) -> lis
 
     song_page_link = list(dict.fromkeys(song_page_link))
 
-    for link in song_page_link:
-        response = httpx.get(url=link)
-        page_soup = BeautifulSoup(markup=response.text, features="html.parser")
-        music_links = page_soup.find_all(
-            name="span",
-            class_="songDownloadLink",
-        )
+    async with httpx.AsyncClient() as client:
+        for link in song_page_link:
+            response = await client.get(url=link)
+            page_soup = BeautifulSoup(markup=response.text, features="html.parser")
+            music_links = page_soup.find_all(
+                name="span",
+                class_="songDownloadLink",
+            )
 
-        # Find the right link element
-        format_music_link = [
-            link
-            for link in music_links
-            if format
-            in cast(str, cast(Tag, cast(Tag, link).contents[1]).string).lower()
-        ][0]
+            # Find the right link element
+            format_music_link = [
+                link
+                for link in music_links
+                if format
+                in cast(str, cast(Tag, cast(Tag, link).contents[1]).string).lower()
+            ][0]
 
-        song_direct_link.append(cast(Tag, format_music_link.parent).get(key="href"))
+            song_direct_link.append(cast(Tag, format_music_link.parent).get(key="href"))
 
     return song_direct_link
 
@@ -83,7 +88,7 @@ def create_parser() -> tuple[OptionParser, Values]:
     return parser, options
 
 
-def main() -> None:
+async def main() -> None:
     parser, options = create_parser()
 
     if options.format is None or options.link is None:
@@ -132,16 +137,24 @@ def main() -> None:
         exit(code=1)
 
     try:
-        # Convert it to parallelism
-        links = scrap_links_from_table(
+        # TODO: Convert it to parallelism
+        start = time.time()
+        links = await scrap_links_from_table(
             song_list_table=song_list_table, format=options.format, title=title
         )
-        downloader.create_directory(directory_name=title)
-        # Write functions to use download_file with parallelism
+        end = time.time()
+        print(colorama.Fore.GREEN, f"Scraping links took {end - start} seconds.")
+        directory_name = downloader.create_directory(directory_name=title)
+
+        # TODO: Write functions to use download_file with parallelism
+        start = time.time()
+        await downloader.download_files(links=links, path=directory_name)
+        end = time.time()
+        print(colorama.Fore.GREEN, f"Downloading files took {end - start} seconds.")
         print(colorama.Fore.GREEN, "Finished downloading all files.")
     except Exception as error:
         print(colorama.Fore.RED, error)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main=main())
