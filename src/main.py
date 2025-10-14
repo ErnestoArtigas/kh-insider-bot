@@ -4,15 +4,14 @@ Licence GNU General Public Licence v3.0.
 """
 
 import asyncio
-import time
 from optparse import OptionParser, Values
 from typing import cast
 
-import colorama
 import httpx
 from bs4 import BeautifulSoup, Tag
 
 import downloader
+from core.dependencies import rich_console
 
 
 def extract_name_from_title(link) -> str:
@@ -90,21 +89,20 @@ def create_parser() -> tuple[OptionParser, Values]:
 
 async def main() -> None:
     parser, options = create_parser()
-
     if options.format is None or options.link is None:
-        print(
-            colorama.Fore.RED
-            + "Missing arguments, you need to provide the format and the link in the command."
+        rich_console.print(
+            "Missing arguments, you need to provide the format and the link in the command.",
+            style="bold red",
         )
-        print(colorama.Style.RESET_ALL, parser.usage)
+        rich_console.print(parser.usage)
         exit(code=1)
 
     if options.format.isdigit() or options.link.isdigit():
-        print(
-            colorama.Fore.RED,
+        rich_console.print(
             "The arguments provided are not string. You need to enter valid arguments",
+            style="bold red",
         )
-        print(colorama.Style.RESET_ALL, parser.usage)
+        rich_console.print(parser.usage)
         exit(code=1)
 
     response = httpx.get(url=options.link)
@@ -112,48 +110,57 @@ async def main() -> None:
     soup = BeautifulSoup(markup=response.text, features="html.parser")
 
     if soup.title is None:
-        print(colorama.Fore.RED, "The program couldn't process the page.")
+        rich_console.print("The program couldn't process the page.", style="bold red")
         exit(code=1)
 
     title = downloader.remove_invalid_chars(
         string=extract_name_from_title(link=soup.title.string)
     )
 
-    print(colorama.Fore.GREEN, title, "was loaded", colorama.Style.RESET_ALL)
+    rich_console.print(f"{title} was loaded.", style="bold green")
 
     song_list_table = soup.find(id="songlist")
 
     if song_list_table is None or type(song_list_table) is not Tag:
-        print(
-            colorama.Fore.RED, "The program cannot find a song table, invalid website."
+        rich_console.print(
+            "The program cannot find a song table, invalid website.",
+            style="bold red",
         )
         exit(code=1)
 
     if not is_format_available(song_list_table=song_list_table, format=options.format):
-        print(
-            colorama.Fore.RED,
+        rich_console.print(
             f"The format {options.format} is not available for {title}.",
+            style="bold red",
         )
         exit(code=1)
 
     try:
         # TODO: Convert it to parallelism
-        start = time.time()
         links = await scrap_links_from_table(
             song_list_table=song_list_table, format=options.format, title=title
         )
-        end = time.time()
-        print(colorama.Fore.GREEN, f"Scraping links took {end - start} seconds.")
+        rich_console.print(
+            f"Scrapped {len(links)} tracks for this album.", style="green"
+        )
+
         directory_name = downloader.create_directory(directory_name=title)
 
+        if not directory_name:
+            rich_console.print(
+                f"Folder {title} not created, exiting the script.", style="bold red"
+            )
+            exit(1)
+
+        rich_console.print(
+            f"Folder {title} created, downloading the songs.", style="green"
+        )
+
         # TODO: Write functions to use download_file with parallelism
-        start = time.time()
         await downloader.download_files(links=links, path=directory_name)
-        end = time.time()
-        print(colorama.Fore.GREEN, f"Downloading files took {end - start} seconds.")
-        print(colorama.Fore.GREEN, "Finished downloading all files.")
+        rich_console.print("Finished downloading all files.", style="bold green")
     except Exception as error:
-        print(colorama.Fore.RED, error)
+        rich_console.print(error, style="bold red")
 
 
 if __name__ == "__main__":
