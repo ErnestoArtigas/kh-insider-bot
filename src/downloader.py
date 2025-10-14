@@ -11,6 +11,8 @@ import aiofiles
 import httpx
 from tqdm import tqdm
 
+from core.dependencies import rich_console
+
 
 def remove_invalid_chars(string) -> str:
     return re.sub(pattern=r'[\\\/?:*"<>|]', repl="", string=string)
@@ -20,13 +22,16 @@ def extract_decode_filename(url: str) -> str:
     return unquote(string=url.split("/")[-1])
 
 
-def create_directory(directory_name: str) -> str:
+def create_directory(
+    directory_name: str,
+) -> str | None:
     path = os.path.join(os.getcwd(), directory_name)
     try:
         os.mkdir(path=path)
         return path
-    except OSError as error:
-        print(error)
+    except OSError:
+        rich_console.print_exception(show_locals=True)
+        return None
 
 
 async def download_file(path: str, link: str, client: httpx.AsyncClient) -> None:
@@ -47,8 +52,8 @@ async def download_file(path: str, link: str, client: httpx.AsyncClient) -> None
                     async for chunk in response.aiter_bytes():
                         await file.write(chunk)
                         progress.update(len(chunk))
-    except Exception as error:
-        print(error)
+    except Exception:
+        rich_console.print_exception(show_locals=True)
 
 
 async def download_files(links: list[str], path: str) -> None:
