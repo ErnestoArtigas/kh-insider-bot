@@ -96,33 +96,34 @@ async def main() -> None:
         )
         exit(code=1)
 
-    # 5 - Get downloadable media links from songlist, create directory and download songs.
-    try:
-        rich_console.print(f"Scrapping {title} song list table...", style="green")
-        media_links = await get_media_links_from_song_links_tag(
-            song_links_tag=song_links_tag, format=options.format, title=title
-        )
+    # 5 - Get downloadable media links from songlist.
+    rich_console.print(f"Scrapping {title} song list table...", style="green")
+    media_links = await get_media_links_from_song_links_tag(
+        song_links_tag=song_links_tag, format=options.format, title=title
+    )
+    rich_console.print(
+        f"Scrapped {len(media_links)} tracks for this album.", style="green"
+    )
+
+    # 6 - Create directory if not present.
+    directory_name = downloader.create_directory(directory_name=title)
+
+    if not directory_name:
         rich_console.print(
-            f"Scrapped {len(media_links)} tracks for this album.", style="green"
+            f"Folder {title} not created, exiting the script.", style="bold red"
         )
+        exit(1)
 
-        directory_name = downloader.create_directory(directory_name=title)
+    rich_console.print(f"Folder {title} created, downloading the songs.", style="green")
 
-        if not directory_name:
-            rich_console.print(
-                f"Folder {title} not created, exiting the script.", style="bold red"
-            )
-            exit(1)
+    # 7 - Download songs.
+    await downloader.download_files(links=media_links, path=directory_name)
 
-        rich_console.print(
-            f"Folder {title} created, downloading the songs.", style="green"
-        )
-
-        await downloader.download_files(links=media_links, path=directory_name)
-        rich_console.print("Finished downloading all files.", style="bold green")
-    except Exception as error:
-        rich_console.print(error, style="bold red")
+    rich_console.print("Finished downloading all files.", style="bold green")
 
 
 if __name__ == "__main__":
+    from rich.traceback import install
+
+    install(show_locals=True)
     asyncio.run(main=main())
