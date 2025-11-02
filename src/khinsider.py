@@ -23,7 +23,54 @@ def is_format_available(song_table: Tag, format: str) -> bool:
     )
 
 
-# First step
+# Function that creates multiple processes to scrap the song table.
+def scrapping_song_table(format: str, song_table: Tag) -> list[str]:
+    song_links = get_song_links_from_song_table(song_table=song_table)
+
+    """
+    To get the right size_chunks, there are two rules:
+    - If the array's length is smaller than the cpu_count, then each chunks is 1 element long.
+    - Else, we use the cpu_count to divide the array's length.
+    """
+    size_chunks = round(
+        number=len(song_links)
+        / (len(song_links) if len(song_links) < cpu_count() else cpu_count())
+    )
+
+    # Divides the array into chunks for each processes.
+    song_links_chunked = [
+        song_links[i : i + size_chunks] for i in range(0, len(song_links), size_chunks)
+    ]
+
+    futures = []
+
+    with rich_console.status(
+        status=f"[bold cyan]Using {len(song_links_chunked)} cores to scrap song table..."
+    ) as _:
+        # Running as much workers as chunks in the array (lower or equal to cpu_count).
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=len(song_links_chunked)
+        ) as executor:
+            for i in range(len(song_links_chunked)):
+                futures.append(
+                    executor.submit(
+                        process_chunk_song_links,
+                        format,
+                        song_links_chunked[i],
+                    )
+                )
+
+        concurrent.futures.wait(futures)
+
+    # Gets result for each future.
+    futures = list(map(lambda x: x.result(), futures))
+
+    # Flattens the result.
+    futures = list(chain.from_iterable(futures))
+
+    return futures
+
+
 def get_song_links_from_song_table(song_table: Tag) -> list[str]:
     song_links = []
 
@@ -35,7 +82,22 @@ def get_song_links_from_song_table(song_table: Tag) -> list[str]:
     return list(dict.fromkeys(song_links))
 
 
-# Second step
+# Synchronously runs async chunk processing, function used in processes.
+def process_chunk_song_links(format: str, song_links: list[str]) -> list[str]:
+    async def async_process_chunk_song_links(
+        format: str, song_links: list[str]
+    ) -> list[str]:
+        async with httpx.AsyncClient() as client:
+            return await get_media_link_from_song_links(
+                format=format, song_links=song_links, client=client
+            )
+
+    return asyncio.run(
+        main=async_process_chunk_song_links(format=format, song_links=song_links)
+    )
+
+
+# Extracts from the song link the media link.
 async def get_media_link_from_song_links(
     format: str, song_links: list[str], client: httpx.AsyncClient
 ) -> list[str]:
@@ -60,56 +122,3 @@ async def get_media_link_from_song_links(
         media_links.append(cast(Tag, format_music_link.parent).get(key="href"))
 
     return media_links
-
-
-# Third step
-def process_chunk_song_links(format: str, song_links: list[str], i: int) -> list[str]:
-    async def main(format, song_links):
-        async with httpx.AsyncClient() as client:
-            return await get_media_link_from_song_links(
-                format=format, song_links=song_links, client=client
-            )
-
-    return asyncio.run(main(format, song_links))
-
-
-# Quad step
-def scrapping_song_list_table(format: str, song_table: Tag) -> list[str]:
-    song_links = get_song_links_from_song_table(song_table=song_table)
-
-    size_chunks = round(
-        len(song_links)
-        / (len(song_links) if len(song_links) < cpu_count() else cpu_count())
-    )
-
-    song_links_chunked = [
-        song_links[i : i + size_chunks] for i in range(0, len(song_links), size_chunks)
-    ]
-
-    futures = []
-
-    with rich_console.status(
-        status=f"[bold cyan]Using {len(song_links_chunked)} cores to scrap song table..."
-    ) as _:
-        with concurrent.futures.ProcessPoolExecutor(
-            len(song_links_chunked)
-        ) as executor:
-            for i in range(len(song_links_chunked)):
-                futures.append(
-                    executor.submit(
-                        process_chunk_song_links,
-                        format=format,
-                        song_links=song_links_chunked[i],
-                        i=i,
-                    )
-                )
-
-        concurrent.futures.wait(futures)
-
-    # Get result for each future.
-    futures = list(map(lambda x: x.result(), futures))
-
-    # Flatten the result.
-    futures = list(chain.from_iterable(futures))
-
-    return futures

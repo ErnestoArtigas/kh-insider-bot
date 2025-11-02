@@ -15,7 +15,7 @@ from core.dependencies import rich_console
 from khinsider import (
     extract_name_from_title,
     is_format_available,
-    test,
+    scrapping_song_table,
 )
 
 
@@ -100,7 +100,7 @@ async def main() -> None:
     # 5 - Get downloadable media links from songlist.
     rich_console.print(f"Scrapping {title} song list table.", style="green")
     start = time.time()
-    media_links = test(song_table=song_table, format=options.format)
+    media_links = scrapping_song_table(song_table=song_table, format=options.format)
     end = time.time()
     rich_console.print(
         f"Scrapped {len(media_links)} tracks for this album in {round(number=end - start, ndigits=2)} seconds.",
