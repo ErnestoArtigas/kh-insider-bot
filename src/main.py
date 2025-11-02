@@ -4,6 +4,7 @@ Licence GNU General Public Licence v3.0.
 """
 
 import asyncio
+import time
 from optparse import OptionParser, Values
 
 import httpx
@@ -13,8 +14,8 @@ import downloader
 from core.dependencies import rich_console
 from khinsider import (
     extract_name_from_title,
-    get_media_links_from_song_links_tag,
     is_format_available,
+    test,
 )
 
 
@@ -97,12 +98,13 @@ async def main() -> None:
         exit(code=1)
 
     # 5 - Get downloadable media links from songlist.
-    rich_console.print(f"Scrapping {title} song list table...", style="green")
-    media_links = await get_media_links_from_song_links_tag(
-        song_links_tag=song_links_tag, format=options.format, title=title
-    )
+    rich_console.print(f"Scrapping {title} song list table.", style="green")
+    start = time.time()
+    media_links = test(song_links_tag=song_links_tag, format=options.format)
+    end = time.time()
     rich_console.print(
-        f"Scrapped {len(media_links)} tracks for this album.", style="green"
+        f"Scrapped {len(media_links)} tracks for this album in {round(number=end - start, ndigits=2)} seconds.",
+        style="green",
     )
 
     # 6 - Create directory if not present.
