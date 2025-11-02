@@ -81,16 +81,16 @@ async def main() -> None:
     rich_console.print(f"{title} was loaded.", style="bold green")
 
     # 4 - Verify if songlistg table exists.
-    song_links_tag = soup.find(id="songlist")
+    song_table = soup.find(id="songlist")
 
-    if song_links_tag is None or type(song_links_tag) is not Tag:
+    if song_table is None or type(song_table) is not Tag:
         rich_console.print(
             "The program cannot find a song table, invalid website.",
             style="bold red",
         )
         exit(code=1)
 
-    if not is_format_available(song_links_tag=song_links_tag, format=options.format):
+    if not is_format_available(song_table=song_table, format=options.format):
         rich_console.print(
             f"The format {options.format} is not available for {title}.",
             style="bold red",
@@ -100,7 +100,7 @@ async def main() -> None:
     # 5 - Get downloadable media links from songlist.
     rich_console.print(f"Scrapping {title} song list table.", style="green")
     start = time.time()
-    media_links = test(song_links_tag=song_links_tag, format=options.format)
+    media_links = test(song_table=song_table, format=options.format)
     end = time.time()
     rich_console.print(
         f"Scrapped {len(media_links)} tracks for this album in {round(number=end - start, ndigits=2)} seconds.",

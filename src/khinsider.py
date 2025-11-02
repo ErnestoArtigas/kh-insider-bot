@@ -14,10 +14,8 @@ def extract_name_from_title(link) -> str:
     return link.split("MP3")[0].rstrip()
 
 
-def is_format_available(song_links_tag: Tag, format: str) -> bool:
-    table_headers = cast(Tag, song_links_tag.find(id="songlist_header")).find_all(
-        name="th"
-    )
+def is_format_available(song_table: Tag, format: str) -> bool:
+    table_headers = cast(Tag, song_table.find(id="songlist_header")).find_all(name="th")
 
     return any(
         format == cast(str, cast(Tag, cast(Tag, th).contents[0]).string).lower()
@@ -26,10 +24,10 @@ def is_format_available(song_links_tag: Tag, format: str) -> bool:
 
 
 # First step
-def get_song_links_from_song_links_tag(song_links_tag: Tag) -> list[str]:
+def get_song_links_from_song_table(song_table: Tag) -> list[str]:
     song_links = []
 
-    for link in song_links_tag.find_all("a"):
+    for link in song_table.find_all("a"):
         song_links.append(
             f"https://downloads.khinsider.com{cast(Tag, link).get('href')}"
         )
@@ -76,8 +74,8 @@ def process_chunk_song_links(format: str, song_links: list[str], i: int) -> list
 
 
 # Quad step
-def scrapping_song_list_table(format: str, song_links_tag: Tag) -> list[str]:
-    song_links = get_song_links_from_song_links_tag(song_links_tag=song_links_tag)
+def scrapping_song_list_table(format: str, song_table: Tag) -> list[str]:
+    song_links = get_song_links_from_song_table(song_table=song_table)
 
     size_chunks = round(
         len(song_links)
