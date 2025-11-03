@@ -119,9 +119,14 @@ async def main() -> None:
     rich_console.print(f"Folder {title} created, downloading the songs.", style="green")
 
     # 7 - Download songs.
-    await downloader.download_files(links=media_links, path=directory_name)
+    start = time.time()
+    downloader.download_files(links=media_links, path=directory_name)
+    end = time.time()
 
-    rich_console.print("Finished downloading all files.", style="bold green")
+    rich_console.print(
+        f"Finished downloading all files in {round(number=end - start, ndigits=2)} seconds.",
+        style="bold green",
+    )
 
 
 if __name__ == "__main__":
