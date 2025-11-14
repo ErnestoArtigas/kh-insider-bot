@@ -54,7 +54,7 @@ def scrapping_song_table(format: str, song_table: Tag) -> list[str]:
             for i in range(len(song_links_chunked)):
                 futures.append(
                     executor.submit(
-                        process_chunk_song_links,
+                        process_get_media_link_from_song_links,
                         format,
                         song_links_chunked[i],
                     )
@@ -83,7 +83,9 @@ def get_song_links_from_song_table(song_table: Tag) -> list[str]:
 
 
 # Synchronously runs async chunk processing, function used in processes.
-def process_chunk_song_links(format: str, song_links: list[str]) -> list[str]:
+def process_get_media_link_from_song_links(
+    format: str, song_links: list[str]
+) -> list[str]:
     async def async_process_chunk_song_links(
         format: str, song_links: list[str]
     ) -> list[str]:
